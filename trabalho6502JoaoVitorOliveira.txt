@@ -1,0 +1,168 @@
+jsr Inicio ;jump para subrotina de inicio do código
+
+Loop: ;subrotina que chama todas as outras subrotinas do codigo(faz um loop mesmo)
+jsr Posicao ;jump para subrotina posicao
+jsr le_teclado ;jump para subrotina le_teclado
+jsr Teclado_cont ;jump para subrotina Teclado_cont
+jsr Posicao_nova ;jump para subrotina Posicao_nova
+
+LDA #$00 ;load imediato para o acumulador
+STA $ff  ; armazena no acumulador o valor hexa ff
+STA $02  ; armazena no acumulador o valor hexa
+
+jsr criaPosicao ;jump para subrotina criaPosicao
+jsr pintaPosicao ;jump para subrotina pintaPosicao
+
+jsr delay ;jump para subrotina de delay (mesma do jogo Snake do easy 6502)
+jmp Loop ; voltando pro inicio do loop
+
+Inicio: ; inicio do codigo
+LDA #$03 ;load imediato para o acumulador
+STA $01  ; armazena no acumulador o valor hexa
+LDA #$00 ; daqui pra baixo as instruções se repetem apenas mudando o valor do endereço e o valor armazenado 
+;(o que faz toda diferença mas em linhas gerais está acorrendo uma atualização dos valores do acumulador)
+STA $10
+LDA #$02
+STA $11
+LDA #$00
+STA $ff
+STA $02
+
+jsr Posicao ; jump subrotina posicao
+jsr criaPosicao ; jump subrotina criaPosicao
+RTS ; instrucao para dar o return (o mesmo return do c java e afins)
+
+
+
+criaPosicao: ; subrotina responsável por criar uma nova posição indispensável (era isso que estava faltando no meu codigo que mostrei para o senhor, agora entendi porque eu estava longe kkk)
+LDA #$00
+LDY #$00
+STA ($10),Y ; transfere para o registrador y o valor hexa 10 
+
+LDA $00
+LDY #$00 ;Load imediato para endereço 00
+STA ($12),y ; transfere para o registrador y o valor hexa 12 
+
+
+LDA #$03 ; load acumulador imediato mesmo esquema dos anteriores
+STA $00 ; armazena no acumulador valor hexa
+RTS ; return
+
+Posicao: ; toda a logica das posiçoes presente nessa subrotina carregamentos e armazenamentos imediatos para o acumulador
+lda $10
+sta $12
+lda $11
+sta $13
+rts
+
+pintaPosicao: ; subrotina responsavel por pintar as posiçoes anteriores (mesmo esquema do pontinho que andava pela tela)
+lda $12
+sta $10
+lda $13
+sta $11
+rts
+
+Posicao_nova: ; suborotina que atualiza as novas posicoes e chama as intruções responsaveis pela movimentação
+
+lda $02
+lsr ; mudança logica para a direita (mesma lógica aplicada as intruções posteriores)
+bcs cima ; branch on carry set para as subrotinas das posições(mesma logica das posteriores cima, esquerda, direita baixo)
+lsr
+bcs direita
+lsr
+bcs baixo
+lsr
+bcs esquerda
+rts ; return 
+
+cima:
+lda $12
+sec ; SEt Carry instrução de sinalização
+sbc #$20 ; subtração com carry imediato de 20 bits conforme o senhor me disse na aula 
+sta $12
+rts
+
+direita:
+inc $12 ; instrução para incrementação
+lda #$1f ; instrução para armezenamento imediato
+bit $12 ; instrução usada para pular bytes seguintes
+rts
+
+baixo:
+lda $12
+clc ;  instrução de cLear Carry
+adc #$20 ;soma  com carry imediato de 20 bits conforme o senhor me disse na aula 
+sta $12
+bcs baixo_todaTela ; branch para subrotina responsavel por percorrer a tela toda mesma logica do exercicio do ponto que percorre toda tela 
+rts
+
+baixo_todaTela: ; subrotina para percorrer toda tela 
+inc $13 ; instrução de incremento
+lda #$6
+cmp $13 ; instrução de comparação
+rts
+
+esquerda:
+dec $12 ; instrução de decremento mesma logica da instrução de incremento (claro que de forma inversa uma aumenta e a outra diminui)
+lda $12
+and #$1f ; instrução para adicionar mais um ciclo caso o limite seja ultrapassado
+cmp #$1f ;  instrução de comparação imediata
+rts
+
+le_teclado: ; subrotina responsavel pela leitura do teclado semelhante a um scanf desviando com branch para as subrotinas das teclas se a comparação for 
+;igual (comparações com w d x a )
+
+lda $ff
+cmp #$77  ;comparação com o a letra na tabela ascii
+beq w
+cmp #$64 ;comparação com o a letra na tabela ascii
+beq d
+cmp #$78 ;comparação com o a letra na tabela ascii
+beq x
+cmp #$61 ;comparação com o a letra na tabela ascii
+beq a
+rts
+
+w: ;daqui pra baixo estão as instruções especificas de cada letra (lógica semelhante ao jogo Snake também)
+lda #1
+sta $02
+rts
+
+d:
+lda #2
+sta $02
+rts
+
+x:
+lda #4
+sta $02
+rts
+
+a:
+lda #8
+sta $02
+rts
+
+Teclado_cont: ; subrotina responsavel por fazer a contagem do teclado (parte mais dificil do codigo pra mim confesso que tive que buscar informações 
+;no forum do clube do hardware o que me ajudou muito nessa parte)
+LDA $02
+CMP #$00
+
+INC $0e
+LDA $0e
+CMP #$00
+
+RTS
+
+delay: ;  delay colocado para que fosse possivel realizar todas as intruções e mostra-las na tela em tempo habil 
+;(logica do jogo snake como falado anteriormente e logica do jogos de atari conforme o senhor explicou em aula )
+ldx #0
+contDelay: ; subrotina de continuação de delay instruções em linhas gerais nada fazem
+nop
+nop
+dex
+bne contDelay ; branch se nao for igual
+rts
+
+fim: ; subrotina de fim do codigo encerrando o mesmo com um break
+brk
